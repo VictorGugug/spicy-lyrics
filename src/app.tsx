@@ -51,6 +51,9 @@ import "./css/polyfills/generic-modal-polyfill.css";
 import "./css/NoticeDialog.css";
 import "./css/polyfills/sonner-polyfill.css";
 import "./css/NPVLyrics.css";
+import "./css/ReviewerMode.css";
+import { InitReviewerComposer } from "./utils/ReviewerMode/openComposer.tsx";
+import { SetActiveTrack } from "./utils/ReviewerMode/state.ts";
 import { showUpdatedDialog } from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import { GetNPVCardElement, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
@@ -773,6 +776,7 @@ async function main() {
       }
 
       const songUri = event?.data?.item?.uri;
+      void SetActiveTrack(songUri ?? null);
       if (songUri) {
         fetchLyrics(songUri).then(ApplyLyrics);
       }
@@ -1121,6 +1125,9 @@ async function main() {
   );
 
   initNPVLyrics();
+
+  InitReviewerComposer();
+  void SetActiveTrack(SpotifyPlayer.GetUri());
 
   Hometinue();
 

@@ -28,12 +28,20 @@ import {
   $lineHoverBackground,
   $lyricsContainerExists,
   $minimalLyricsMode,
+  $reviewerModeEnabled,
   $showVolumeSlider,
   $simpleLyricsMode,
   $skipSpicyFont,
   $ttmlMakerMode,
   $viewControlsPosition,
 } from "../../utils/stores.ts";
+import {
+  $reviewerAnnotationCount,
+  $reviewerModeActive,
+  $reviewerTrackCompleted,
+} from "../../utils/ReviewerMode/state.ts";
+import { OpenReviewerPanel } from "../../utils/ReviewerMode/openReviewerPanel.tsx";
+import { toast } from "sonner";
 import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
@@ -83,6 +91,8 @@ export const Tooltips: {
   CinemaView: TippyInstance | null;
   NowBarSideToggle: TippyInstance | null;
   LyricsManager: TippyInstance | null;
+  ReviewerMode: TippyInstance | null;
+  ReviewerModePanel: TippyInstance | null;
   Settings: TippyInstance | null;
 } = {
   Close: null,
@@ -93,6 +103,8 @@ export const Tooltips: {
   CinemaView: null,
   NowBarSideToggle: null,
   LyricsManager: null,
+  ReviewerMode: null,
+  ReviewerModePanel: null,
   Settings: null,
 };
 
@@ -470,6 +482,7 @@ function AppendViewControls(ReAppend: boolean = false) {
   const isNoLyrics =
     $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetUri()}`;
   const isTTMLMakerMode = $ttmlMakerMode.get();
+  const isReviewerModeEnabled = $reviewerModeEnabled.get();
   elem.innerHTML = `
         ${
           Fullscreen.IsOpen || Fullscreen.CinemaViewOpen
@@ -515,6 +528,12 @@ function AppendViewControls(ReAppend: boolean = false) {
         ${
           isTTMLMakerMode
             ? `<button id="LyricsManager" class="ViewControl">${Icons.LyricsManager}</button>`
+            : ""
+        }
+        ${
+          isReviewerModeEnabled
+            ? `<button id="ReviewerMode" class="ViewControl ${$reviewerModeActive.get() ? "Active" : ""}">${Icons.ReviewerMode}</button>
+               <button id="ReviewerModePanel" class="ViewControl" data-count="${$reviewerAnnotationCount.get()}" data-completed="${$reviewerTrackCompleted.get()}">${Icons.ReviewerModePanel}</button>`
             : ""
         }
         ${IsPIP ? "" : `<button id="SettingsToggle" class="ViewControl">${Icons.Settings}</button>`}
@@ -775,6 +794,45 @@ function AppendViewControls(ReAppend: boolean = false) {
         controlsLogger.warn("Failed to setup Lyrics Manager tooltip", err);
       }
     }
+
+    const reviewerModeButton = elem.querySelector<HTMLButtonElement>("#ReviewerMode");
+    if (reviewerModeButton && isReviewerModeEnabled) {
+      try {
+        if (!isPip) {
+          Tooltips.ReviewerMode = Spicetify.Tippy(reviewerModeButton, {
+            ...Spicetify.TippyProps,
+            content: "Reviewer Mode",
+          });
+        }
+        reviewerModeButton.addEventListener("click", () => {
+          $reviewerModeActive.set(!$reviewerModeActive.get());
+        });
+      } catch (err) {
+        controlsLogger.warn("Failed to setup Reviewer Mode tooltip", err);
+      }
+    }
+
+    const reviewerPanelButton = elem.querySelector<HTMLButtonElement>("#ReviewerModePanel");
+    if (reviewerPanelButton && isReviewerModeEnabled) {
+      try {
+        if (!isPip) {
+          Tooltips.ReviewerModePanel = Spicetify.Tippy(reviewerPanelButton, {
+            ...Spicetify.TippyProps,
+            content: $reviewerTrackCompleted.get()
+              ? "Lyrics Review (Published)"
+              : "Lyrics Review",
+          });
+        }
+        reviewerPanelButton.addEventListener("click", () => {
+          if (IsPIP) {
+            globalThis.focus();
+          }
+          OpenReviewerPanel();
+        });
+      } catch (err) {
+        controlsLogger.warn("Failed to setup Reviewer Panel tooltip", err);
+      }
+    }
   }
 }
 
@@ -827,9 +885,37 @@ $viewControlsPosition.listen((v) => {
   AppendViewControls(true);
 });
 
-$ttmlMakerMode.listen((v) => {
+$ttmlMakerMode.listen(() => {
   if (!PageContainer) return;
   AppendViewControls(true);
-})
+});
+
+$reviewerModeEnabled.listen(() => {
+  if (!PageContainer) return;
+  AppendViewControls(true);
+});
+
+$reviewerModeActive.listen((active) => {
+  document.body.classList.toggle("ReviewerModeActive", active);
+  const btn = PageContainer?.querySelector("#ReviewerMode");
+  if (btn) btn.classList.toggle("Active", active);
+});
+
+$reviewerAnnotationCount.listen((count) => {
+  const btn = PageContainer?.querySelector<HTMLElement>("#ReviewerModePanel");
+  if (btn) btn.setAttribute("data-count", String(count));
+});
+
+$reviewerTrackCompleted.listen((completed) => {
+  const btn = PageContainer?.querySelector<HTMLElement>("#ReviewerModePanel");
+  if (btn) btn.setAttribute("data-completed", String(completed));
+  if (Tooltips.ReviewerModePanel) {
+    Tooltips.ReviewerModePanel.setContent(
+      completed
+        ? "Lyrics Review (Published)"
+        : "Lyrics Review"
+    );
+  }
+});
 
 export default PageView;

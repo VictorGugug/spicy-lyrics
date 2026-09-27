@@ -1,8 +1,11 @@
 import { useStore } from "@nanostores/react";
 import React from "react";
+import { toast } from "sonner";
+import { ClearAllReviewerStorage } from "../../../utils/ReviewerMode/state.ts";
 import {
   $lineHoverBackground,
   $minimalLyricsMode,
+  $reviewerModeEnabled,
   $simpleLyricsMode,
   $simpleLyricsModeRenderingType
 } from "../../../utils/stores.ts";
@@ -21,6 +24,7 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
   const simpleLyricsModeRenderingType = useStore($simpleLyricsModeRenderingType);
   const minimalLyricsMode = useStore($minimalLyricsMode);
   const lineHoverBackground = useStore($lineHoverBackground);
+  const reviewerModeEnabled = useStore($reviewerModeEnabled);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 
@@ -28,8 +32,10 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
   const r2 = matches(query, "Simple Mode: Text Animation Style", "How lyrics text transitions are rendered in Simple Lyrics Mode.");
   const r3 = matches(query, "Minimal Lyrics Mode", "Hides sung lyrics lines in Fullscreen and Cinema Mode");
   const r4 = matches(query, "Line Hover Background", "Shows a highlight box behind a lyrics line when you hover over it");
+  const r5 = matches(query, "Reviewer Mode", "Enable lyrics review tools and synchronization annotations directly in the player");
+  const r6 = matches(query, "Clear Reviewer Storage", "Remove all saved reviewer annotations and progress across all tracks to free up local storage.");
 
-  if (!r1 && !r2 && !r3 && !r4) return null;
+  if (!r1 && !r2 && !r3 && !r4 && !r5 && !r6) return null;
 
   return (
     <>
@@ -74,7 +80,32 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
           <Toggle checked={lineHoverBackground} onChange={(v) => $lineHoverBackground.set(v)} />
         </Row>
       )}
- 
+
+      {r5 && (
+        <Row
+          label="Reviewer Mode"
+          description="Enable lyrics review tools and synchronization annotations directly in the player"
+        >
+          <Toggle checked={reviewerModeEnabled} onChange={(v) => $reviewerModeEnabled.set(v)} />
+        </Row>
+      )}
+
+      {r6 && reviewerModeEnabled && (
+        <Row
+          label="Clear Reviewer Storage"
+          description="Remove all saved reviewer annotations and progress across all tracks to free up local storage."
+        >
+          <button
+            className="sl-sp-btn"
+            onClick={async () => {
+              await ClearAllReviewerStorage();
+              toast.success("Reviewer storage cleared");
+            }}
+          >
+            Clear All
+          </button>
+        </Row>
+      )}
     </>
   );
 }
