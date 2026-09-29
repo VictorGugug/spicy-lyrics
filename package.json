@@ -1,10 +1,12 @@
 {
   "name": "spicy-lyrics",
   "author": "Spikerko",
+  "type": "module",
   "scripts": {
     "sc": "spicetify-creator",
     "dev": "spicetify-creator dev",
     "build": "spicetify-creator build",
+    "build:channel": "bun run build && node project/package-channel.mjs",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt"

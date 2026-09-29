@@ -146,6 +146,7 @@ out
 
 dist/
 dist_legacy/
+dist-server/
 
 src/utils/SpicyHasher.ts
 
